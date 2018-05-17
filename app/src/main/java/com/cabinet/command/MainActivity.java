@@ -7,6 +7,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
+import com.cabinet.command.api.UsbClient;
 import com.cabinet.command.crc.RxCommond;
 import com.cabinet.command.crc.intercenter.Interceptor;
 import com.cabinet.command.crc.mode.Driver;
@@ -35,39 +36,38 @@ import retrofit2.Retrofit;
 
 public class MainActivity extends AppCompatActivity {
 
-    private Handler handler;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        Rx.driver(getApplication())
-                .flatMap(new Function<Boolean, ObservableSource<Result>>() {
-                    @Override
-                    public ObservableSource<Result> apply(Boolean aBoolean) throws Exception {
-                        Toast.makeText(MainActivity.this, "" + aBoolean, Toast.LENGTH_SHORT).show();
-                        Log.e("TAG", "accept: " + aBoolean);
-                        byte[] command = CommandAssemble.assembleCommand(0x05, 0x01, 1, 1);
-                        return Rx.send(command);
-                    }
-                })
-                .subscribeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Consumer<Result>() {
-                    @Override
-                    public void accept(Result result) throws Exception {
-                        Log.e("TAG", "accept: " + result.isSuccess() + result.getMsg());
-                        StringUtils.printHex(result.getResult());
-                    }
-                });
-
-//        new Retrofit.Builder()
-//                .addCallAdapterFactory()
-//                .build().create()
-
     }
 
     public void click(View view) {
-        
+        UsbClient.getUsb().check().subscribe(new Consumer<byte[]>() {
+            @Override
+            public void accept(byte[] bytes) throws Exception {
+                android.util.Log.e("TAG", "check1: "+Thread.currentThread().getName()+" "+printHex(bytes) );
+            }
+        });
+    }
+
+
+    public static String printHex(byte[] command) {
+        StringBuffer buffer = new StringBuffer();
+        for (int i = 0; i < command.length; i++) {
+            byte b = command[i];
+            int i1 = byteToInt(b);
+            String s = Integer.toHexString(i1);
+            if (s.length() == 1) {
+                s = "0" + s;
+            }
+            buffer.append(s);
+        }
+        return buffer.toString();
+    }
+
+    public static int byteToInt(byte b) {
+        //Java 总是把 byte 当做有符处理；我们可以通过将其和 0xFF 进行二进制与得到它的无符值
+        return b & 0xFF;
     }
 }
